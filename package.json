@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/curriecode/tinyapp/issues"
   },
-  "homepage": "https://github.com/curriecode/tinyapp#readme"
+  "homepage": "https://github.com/curriecode/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
 }
