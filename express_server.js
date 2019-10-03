@@ -7,6 +7,7 @@ const cookieParser = require('cookie-parser');
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
+const users = {};
 
 
 
@@ -26,10 +27,6 @@ const generateRandomString = (num) => {
 };
 
 
-// app.get("/", (req, res) => {
-//   res.send("Hello!");
-// });
-
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
@@ -38,14 +35,10 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-// app.get("/hello", (req, res) => {
-//   res.send("<html><body>Hello <b>World</b></body></html>\n");
-// });
-
 app.get("/urls", (req, res) => {
   let templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"]
+    user: req.cookies["user_id"]
   };
   res.render("urls_index", templateVars);
 });
@@ -53,7 +46,7 @@ app.get("/urls", (req, res) => {
 app.get("/urls/new", (req, res) => {
   let templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"]
+    user: req.cookies["user_id"]
   };
   res.render("urls_new", templateVars);
 });
@@ -63,7 +56,7 @@ app.get("/urls/:shortURL", (req, res) => {
   let templateVars = {
     shortURL: shortURL,
     longURL: urlDatabase[shortURL],
-    username: req.cookies["username"]
+    user: req.cookies["user_id"]
   };
   res.render("urls_show", templateVars);
 });
@@ -96,11 +89,66 @@ app.get("/urls:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
+  res.cookie('user_id', req.body);
+  console.log("userBody:", req.body);
   res.redirect('/urls');
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username', req.body.username);
+  res.clearCookie('user_id', req.body);
+  res.redirect('/login');
+});
+
+
+app.get("/register", (req, res) => {
+  let templateVars = {
+    user: req.cookies["user_id"]
+  };
+  res.render("urls_registration", templateVars);
+});
+
+app.get("/login", (req, res) => {
+
+  let templateVars = {
+    user: req.cookies["user_id"]
+  };
+  res.render("urls_login", templateVars);
+});
+
+
+// const userLookup = (res) => {
+//   if (users['email'] === users['email']) {
+//     res.status(404).send("Not found.");
+//   }
+// };
+
+app.post("/register", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  const id = generateRandomString(3);
+  const user = {
+    id: id,
+    email: email,
+    password: password,
+  };
+
+  //check for existing email before putting new one into the database
+
+  if (req.body.email === "" || req.body.password === "") {
+    res.status(404).send("Not found.");
+    return;
+  }
+
+  for (let key in users) {
+    if (email === users[key].email) {
+      res.status(404).send("Not found.");
+      return;
+    }
+  }
+  users[id] = user;
+
+  console.log("users:", users);
+
+  res.cookie('user_id', id);
   res.redirect('/urls');
 });
