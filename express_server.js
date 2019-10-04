@@ -3,17 +3,35 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 const cookieParser = require('cookie-parser');
+// const morgan = require('morgan');
+
 
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
+// app.use(morgan('combined'));
+
 const users = {};
 
+//function finds userID
+const getUserById = (id) => {
+  return users[id];
+};
 
 
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+//TODO update database to include userId
+// i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
+
+
+let urlDatabase = {
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW"
+  },
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
+  }
 };
 
 const generateRandomString = (num) => {
@@ -35,45 +53,83 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+const urlsForUser = (id) => {
+  let result = {};
+  for (let key in urlDatabase) {
+    if (urlDatabase[key].userID === id) {
+      result[key] = urlDatabase[key];
+    }
+  }
+  return result;
+};
+
+
+
 app.get("/urls", (req, res) => {
+  const user = getUserById(req.cookies["user_id"]);
+  // console.log("id of current user", user)
+  // console.log(urlsForUser(req.cookies["user_id"]));
   let templateVars = {
-    urls: urlDatabase,
-    user: req.cookies["user_id"]
+    urls: urlsForUser(req.cookies["user_id"]),
+    user: user,
   };
   res.render("urls_index", templateVars);
 });
 
+
 app.get("/urls/new", (req, res) => {
+  const user = getUserById(req.cookies["user_id"]);
+
   let templateVars = {
     urls: urlDatabase,
-    user: req.cookies["user_id"]
+    user: user
   };
-  res.render("urls_new", templateVars);
+
+  if (user) {
+    return res.render("urls_new", templateVars);
+
+  } else {
+    return res.redirect('/login');
+  }
 });
 
+
+
 app.get("/urls/:shortURL", (req, res) => {
+  // console.log("this is the database", urlDatabase)
+  const user = getUserById(req.cookies["user_id"]);
   const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[req.params.shortURL].longURL;
+
+
   let templateVars = {
     shortURL: shortURL,
-    longURL: urlDatabase[shortURL],
-    user: req.cookies["user_id"]
+    longURL: urlDatabase[shortURL][longURL],
+    user: user
   };
   res.render("urls_show", templateVars);
 });
 
+//Is this where I update the database?
+
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
+  const user = getUserById(req.cookies["user_id"]);
   let shortURL = generateRandomString(6);
-  urlDatabase[shortURL] = req.body.longURL;
+  urlDatabase[shortURL] = { longURL: req.body.longURL, userID: user.id };
+  // urlDatabase[shortURL].userID = user;
   res.redirect(`/urls/${shortURL}`);
 });
 
 app.get("/u/:shortURL", (req, res) => {
+
   const longURL = urlDatabase[req.params.shortURL];
-  res.redirect(longURL);
+  res.redirect(longURL['longURL']);
+
 });
 
+//TODO make it so users can only delete from there list of things
 app.post("/urls/:shortURL/delete", (req, res) => {
+  console.log(req.params.shortURL)
   delete urlDatabase[req.params.shortURL];
   res.redirect('/urls');
 });
@@ -89,9 +145,17 @@ app.get("/urls:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie('user_id', req.body);
-  console.log("userBody:", req.body);
-  res.redirect('/urls');
+  const email = req.body.email;
+  const password = req.body.password;
+
+  for (let id in users) {
+    if (users[id].email === email && users[id].password === password) {
+      res.cookie('user_id', id);
+      return res.redirect('/urls');
+    }
+  }
+  return res.status(404).send("Not found."); //TODO change error to username/pw not found
+
 });
 
 app.post("/logout", (req, res) => {
@@ -101,26 +165,24 @@ app.post("/logout", (req, res) => {
 
 
 app.get("/register", (req, res) => {
+  const user = getUserById(req.cookies["user_id"]);
+
   let templateVars = {
-    user: req.cookies["user_id"]
+    user: user
   };
   res.render("urls_registration", templateVars);
 });
 
 app.get("/login", (req, res) => {
+  const user = getUserById(req.cookies["user_id"]);
 
   let templateVars = {
-    user: req.cookies["user_id"]
+    user: user
   };
   res.render("urls_login", templateVars);
 });
 
 
-// const userLookup = (res) => {
-//   if (users['email'] === users['email']) {
-//     res.status(404).send("Not found.");
-//   }
-// };
 
 app.post("/register", (req, res) => {
   const email = req.body.email;
@@ -140,14 +202,12 @@ app.post("/register", (req, res) => {
   }
 
   for (let key in users) {
-    if (email === users[key].email) {
+    if (email === users[key].email) { // XXX
       res.status(404).send("Not found.");
       return;
     }
   }
   users[id] = user;
-
-  console.log("users:", users);
 
   res.cookie('user_id', id);
   res.redirect('/urls');
