@@ -1,15 +1,22 @@
-# Tiny App
-  ### An app where users enter in a long URL and shortens it to 6 random characters.
+# TinyApp Project
 
-  - it uses ejs to create templates for the different pages (login, registration, urls_show, urls_new)
-  - routes are contained in express_server.js
-  - everything in the nav is contained in _header.ejs
+TinyApp is a full stack web application built with Node and Express that allows users to shorten long URLs (à la bit.ly).
 
+## Final Product
 
-## functionality to finish
+!["screenshot description"](#)
+!["screenshot description"](#)
 
-1. URLs Belong to Users
-- Add a new userID (string) property to individual url objects within the urlDatabase collection. It should just contain the user ID (the key in the users collection) and not a copy of the entire user data. All URLs should now have this extra property. 
+## Dependencies
 
-//need to add key with shortURL
-//to that add longURL & userID
+- Node.js
+- Express
+- EJS
+- bcrypt
+- body-parser
+- cookie-session
+
+## Getting Started
+
+- Install all dependencies (using the `npm install` command).
+- Run the development web server using the `node express_server.js` command.

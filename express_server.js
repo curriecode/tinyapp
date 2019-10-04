@@ -1,33 +1,24 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 const app = express();
-const PORT = 8080; // default port 8080
-// const cookieParser = require('cookie-parser');
+const PORT = 8080;
 const bcrypt = require('bcrypt');
 const cookieSession = require('cookie-session');
+const { getUserByEmail } = require('./helpers');
+
+//user database
+const users = {};
+
 app.use(cookieSession({
   name: 'session',
   keys: ['beep']
 }));
 
-
-
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
-// app.use(cookieParser());
-
-const users = {};
-
-//function finds userID
-const getUserById = (id) => {
-  return users[id];
-};
 
 
-//TODO update database to include userId
-// i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
-
-
+//dataBase that updates dynamically when users add URLs in their account
 let urlDatabase = {
   i3BoGr: {
     longURL: "https://www.google.ca",
@@ -37,6 +28,11 @@ let urlDatabase = {
     longURL: "https://www.tsn.ca",
     userID: "aJ48lW"
   }
+};
+
+//function finds userID
+const getUserById = (id) => {
+  return users[id];
 };
 
 const generateRandomString = (num) => {
@@ -49,15 +45,7 @@ const generateRandomString = (num) => {
   return output;
 };
 
-
-app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
-});
-
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-
+//returns a new database of urls that only have the id of the current user who is logged in
 const urlsForUser = (id) => {
   let result = {};
   for (let key in urlDatabase) {
@@ -68,12 +56,16 @@ const urlsForUser = (id) => {
   return result;
 };
 
+app.listen(PORT, () => {
+  console.log(`Example app listening on port ${PORT}!`);
+});
 
+app.get("/urls.json", (req, res) => {
+  res.json(urlDatabase);
+});
 
 app.get("/urls", (req, res) => {
   const user = getUserById(req.session.user_id);
-  // console.log("id of current user", user)
-  // console.log(urlsForUser(req.cookies["user_id"]));
   let templateVars = {
     urls: urlsForUser(req.session.user_id),
     user: user
@@ -99,13 +91,9 @@ app.get("/urls/new", (req, res) => {
 });
 
 
-
 app.get("/urls/:shortURL", (req, res) => {
-  // console.log("this is the database", urlDatabase)
   const user = getUserById(req.session.user_id);
   const shortURL = req.params.shortURL;
-  // const longURL = urlDatabase[req.params.shortURL].longURL;
-
 
   let templateVars = {
     shortURL: shortURL,
@@ -115,26 +103,20 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-//Is this where I update the database?
 
 app.post("/urls", (req, res) => {
   const user = getUserById(req.session.user_id);
   let shortURL = generateRandomString(6);
   urlDatabase[shortURL] = { longURL: req.body.longURL, userID: user.id };
-  // urlDatabase[shortURL].userID = user;
   res.redirect(`/urls/${shortURL}`);
 });
 
 app.get("/u/:shortURL", (req, res) => {
-
   const longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL['longURL']);
-
 });
 
-//TODO make it so users can only delete from there list of things
 app.post("/urls/:shortURL/delete", (req, res) => {
-  console.log(req.params.shortURL)
   delete urlDatabase[req.params.shortURL];
   res.redirect('/urls');
 });
@@ -150,20 +132,22 @@ app.get("/urls:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-  // const hashedPassword = bcrypt.hashSync(password, 10);
+  if (!req.session.user_id) {
+    const email = req.body.email;
+    const password = req.body.password;
+    const userID = getUserByEmail(email, users);
 
-
-
-  for (let id in users) {
-    if (users[id].email === email && bcrypt.compareSync(password, users[id].password) === true) {
-      req.session.user_id = id;
-      return res.redirect('/urls');
+    if (userID) {
+      // Is a valid user based on their e-mail
+      const user = getUserById(userID);
+      if (bcrypt.compareSync(password, user.password)) {
+        // Password matches
+        req.session.user_id = userID;
+        return res.redirect('/urls');
+      }
     }
+    res.status(404).send('Incorrect username or password');
   }
-  return res.status(404).send("Incorrect username or password."); //TODO change error to username/pw not found
-
 });
 
 app.post("/logout", (req, res) => {
@@ -190,8 +174,6 @@ app.get("/login", (req, res) => {
   res.render("urls_login", templateVars);
 });
 
-
-
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
@@ -204,18 +186,17 @@ app.post("/register", (req, res) => {
   };
 
   //check for existing email before putting new one into the database
-
-  if (req.body.email === "" || req.body.password === "") {
+  if (email === "" || password === "") {
     res.status(404).send("You must enter a valid email address and password to create an account");
     return;
   }
 
-  for (let key in users) {
-    if (email === users[key].email) { // XXX
-      res.status(404).send("An account already exists for this email address.");
-      return;
-    }
+  // let dataBase = user.email;
+  if (getUserByEmail(email, users)) {
+    res.status(404).send("An account already exists for this email address.");
+    return;
   }
+
   users[id] = user;
 
   req.session.user_id = id;
