@@ -3,13 +3,18 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 const cookieParser = require('cookie-parser');
-// const morgan = require('morgan');
+const bcrypt = require('bcrypt');
+// const cookieSession = require('cookie-session');
+// app.use(cookieSession({
+//   name: 'session',
+//   keys: ['key1', 'key2']
+//  }))
+
 
 
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-// app.use(morgan('combined'));
 
 const users = {};
 
@@ -99,12 +104,12 @@ app.get("/urls/:shortURL", (req, res) => {
   // console.log("this is the database", urlDatabase)
   const user = getUserById(req.cookies["user_id"]);
   const shortURL = req.params.shortURL;
-  const longURL = urlDatabase[req.params.shortURL].longURL;
+  // const longURL = urlDatabase[req.params.shortURL].longURL;
 
 
   let templateVars = {
     shortURL: shortURL,
-    longURL: urlDatabase[shortURL][longURL],
+    longURL: urlDatabase[shortURL]['longURL'],
     user: user
   };
   res.render("urls_show", templateVars);
@@ -147,14 +152,17 @@ app.get("/urls:shortURL", (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  // const hashedPassword = bcrypt.hashSync(password, 10);
+
+
 
   for (let id in users) {
-    if (users[id].email === email && users[id].password === password) {
+    if (users[id].email === email && bcrypt.compareSync(password, users[id].password) === true) {
       res.cookie('user_id', id);
       return res.redirect('/urls');
     }
   }
-  return res.status(404).send("Not found."); //TODO change error to username/pw not found
+  return res.status(404).send("Incorrect username or password."); //TODO change error to username/pw not found
 
 });
 
@@ -187,23 +195,24 @@ app.get("/login", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
   const id = generateRandomString(3);
   const user = {
     id: id,
     email: email,
-    password: password,
+    password: hashedPassword,
   };
 
   //check for existing email before putting new one into the database
 
   if (req.body.email === "" || req.body.password === "") {
-    res.status(404).send("Not found.");
+    res.status(404).send("You must enter a valid email address and password to create an account");
     return;
   }
 
   for (let key in users) {
     if (email === users[key].email) { // XXX
-      res.status(404).send("Not found.");
+      res.status(404).send("An account already exists for this email address.");
       return;
     }
   }
