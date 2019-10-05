@@ -9,12 +9,12 @@ TinyApp is a full stack web application built with Node and Express that allows 
 
 ## Final Product
 
-![Register for you very own account!](https://github.com/curriecode/tinyapp/blob/master/docs/register.png?raw=true)
+!["Register for you very own account!"](https://github.com/curriecode/tinyapp/blob/master/docs/register.png?raw=true)
 
-![Create and manage your shortened urls.](https://github.com/curriecode/tinyapp/blob/master/docs/mange-url.png?raw=true)
+!["Create and manage your shortened urls."](https://github.com/curriecode/tinyapp/blob/master/docs/mange-url.png?raw=true)
 
 
-![Edit your urls!](https://github.com/curriecode/tinyapp/blob/master/docs/Edit-url.png?raw=true)
+!["Edit your urls!"](https://github.com/curriecode/tinyapp/blob/master/docs/Edit-url.png?raw=true)
 
 ## Dependencies
 
