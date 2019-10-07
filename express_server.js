@@ -116,10 +116,6 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const user = getUserById(req.session.user_id);
-  if (urlDatabase[req.params.shortURL].userID !== user.id) {
-    res.status(400).send('You do not have permissions to edit this url.');
-  }
   const longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL['longURL']);
 });
