@@ -7,7 +7,8 @@ const cookieSession = require('cookie-session');
 const { getUserByEmail } = require('./helpers');
 
 //user database
-const users = {};
+const users = {
+};
 
 app.use(cookieSession({
   name: 'session',
@@ -93,6 +94,9 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/urls/:shortURL", (req, res) => {
   const user = getUserById(req.session.user_id);
+  if (urlDatabase[req.params.shortURL].userID !== user.id) {
+    res.status(400).send('You do not have permissions to edit this url.');
+  }
   const shortURL = req.params.shortURL;
 
   let templateVars = {
@@ -112,6 +116,10 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
+  const user = getUserById(req.session.user_id);
+  if (urlDatabase[req.params.shortURL].userID !== user.id) {
+    res.status(400).send('You do not have permissions to edit this url.');
+  }
   const longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL['longURL']);
 });
@@ -122,7 +130,14 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 app.post("/urls/:shortURL/edit", (req, res) => {
-  const newInfo = req.body.edit;
+  const user = getUserById(req.session.user_id);
+  if (urlDatabase[req.params.shortURL].userID !== user.id) {
+    res.status(400).send('You do not have permissions to edit this url.');
+  }
+  const newInfo = {
+    longURL: req.body.edit,
+    userID: user.id
+  };
   urlDatabase[req.params.shortURL] = newInfo;
   res.redirect('/urls');
 });
